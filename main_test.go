@@ -159,3 +159,31 @@ func TestGetPolicyIDFromMetadata_Empty(t *testing.T) {
 		t.Errorf("should error when policyIDKey does not exist")
 	}
 }
+
+func TestGetPolicyIDFromMetadata_NilMetadata(t *testing.T) {
+	var metadata map[string]interface{} = nil
+
+	if _, err := getPolicyIDFromMetadata(metadata, "policyID"); err == nil {
+		t.Errorf("expected error when metadata is nil")
+	}
+}
+
+func TestGetPolicyIDFromMetadata_NoDetails(t *testing.T) {
+	metadata := map[string]interface{}{
+		"somethingElse": "value",
+	}
+
+	if _, err := getPolicyIDFromMetadata(metadata, "policyID"); err == nil {
+		t.Errorf("expected error when details is missing")
+	}
+}
+
+func TestGetPolicyIDFromMetadata_DetailsWrongType(t *testing.T) {
+	metadata := map[string]interface{}{
+		"details": "not-a-map",
+	}
+
+	if _, err := getPolicyIDFromMetadata(metadata, "policyID"); err == nil {
+		t.Errorf("expected error when details is wrong type")
+	}
+}

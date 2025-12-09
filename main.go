@@ -122,11 +122,17 @@ func run() error {
 	var policiesWithFails, policiesWithWarns []string
 	var fails, warns []string
 	var successes int
+
 	for _, result := range results {
 		successes += result.Successes
 
 		for _, fail := range result.Failures {
 			fails = append(fails, fmt.Sprintf("%s - %s", result.FileName, fail.Message))
+
+			if metricsURL == "" || policyIDKey == "" {
+				continue
+			}
+
 			policyID, err := getPolicyIDFromMetadata(fail.Metadata, policyIDKey)
 			if err != nil {
 				continue
@@ -138,6 +144,11 @@ func run() error {
 
 		for _, warn := range result.Warnings {
 			warns = append(warns, fmt.Sprintf("%s - %s", result.FileName, warn.Message))
+
+			if metricsURL == "" || policyIDKey == "" {
+				continue
+			}
+
 			policyID, err := getPolicyIDFromMetadata(warn.Metadata, policyIDKey)
 			if err != nil {
 				continue
@@ -295,12 +306,29 @@ func runConftestTest() ([]CheckResult, error) {
 }
 
 func getPolicyIDFromMetadata(metadata map[string]interface{}, policyIDKey string) (string, error) {
-	details := metadata["details"].(map[string]interface{})
-	if details[policyIDKey] == nil {
-		return "", fmt.Errorf("empty policyID key")
+	if metadata == nil {
+		return "", fmt.Errorf("metadata is nil")
+	}
+	if policyIDKey == "" {
+		return "", fmt.Errorf("policyIDKey is empty")
 	}
 
-	return fmt.Sprintf("%v", details[policyIDKey]), nil
+	rawDetails, ok := metadata["details"]
+	if !ok || rawDetails == nil {
+		return "", fmt.Errorf("missing details in metadata")
+	}
+
+	details, ok := rawDetails.(map[string]interface{})
+	if !ok {
+		return "", fmt.Errorf("details has unexpected type %T", rawDetails)
+	}
+
+	val, ok := details[policyIDKey]
+	if !ok || val == nil {
+		return "", fmt.Errorf("empty policyID key %q", policyIDKey)
+	}
+
+	return fmt.Sprintf("%v", val), nil
 }
 
 func getFlagsFromEnv() []string {
